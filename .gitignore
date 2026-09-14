@@ -1,6 +1,9 @@
 # Dependencies
 node_modules/
 
+# Multi-agent internal artifacts
+.agents/
+
 # Build artifacts
 dist/
 dist-cli/

@@ -1,6 +1,6 @@
 /**
  * High-accuracy algorithmic English syllable counter with phonetic rules,
- * irregular word exceptions, and LRU memory cache.
+ * irregular word exceptions, compound word decomposition, and LRU memory cache.
  */
 
 const SYLLABLE_CACHE = new Map<string, number>();
@@ -56,6 +56,9 @@ const IRREGULAR_SYLLABLES: Record<string, number> = {
   temperature: 4,
   vegetable: 3,
   wednesday: 2,
+  element: 3,
+  elements: 3,
+  elementary: 5,
   
   // Classical / borrowed words
   recipe: 3,
@@ -79,8 +82,69 @@ const IRREGULAR_SYLLABLES: Record<string, number> = {
   karate: 3,
   guacamole: 4,
   origami: 4,
-  tsunami: 3
+  tsunami: 3,
+
+  // Compound reference words
+  firefly: 2,
+  barefoot: 2,
+  somewhere: 2,
+  grapefruit: 2,
+  whiteboard: 2,
+  guard: 1,
+  safeguard: 2,
+
+  // -ized regular / irregular reference words
+  sized: 1,
+  organized: 3,
+  customized: 3,
+  capitalized: 4,
+  specialized: 3
 };
+
+// Common closed-compound prefixes where first stem retains silent 'e' or distinct phonetic boundary
+const COMPOUND_PREFIXES = [
+  'fire', 'bare', 'some', 'white', 'grape', 'waste', 'life', 'safe',
+  'note', 'home', 'space', 'care', 'store', 'shoe', 'wave', 'bone',
+  'gate', 'house', 'pipe', 'rose', 'side', 'smoke', 'ware', 'wire',
+  'lake', 'cave', 'type', 'name', 'base', 'time', 'blue', 'cross',
+  'horse', 'water', 'black', 'hand', 'wide'
+];
+
+// Common closed-compound terminal stems
+const COMPOUND_SUFFIXES = [
+  'where', 'time', 'side', 'wide', 'like', 'house', 'board', 'berry',
+  'boat', 'room', 'book', 'fly', 'foot', 'fruit', 'walk', 'yard'
+];
+
+/**
+ * Decomposes closed compound words into constituent parts to prevent internal silent 'e' overcounting.
+ */
+function decomposeCompound(word: string): number | null {
+  if (word.length < 6) return null;
+
+  // Check prefix matches
+  for (const prefix of COMPOUND_PREFIXES) {
+    if (word.startsWith(prefix) && word.length >= prefix.length + 3) {
+      const rest = word.slice(prefix.length);
+      // Ensure rest is a distinct constituent containing vowels and not a standard inflection
+      if (/[aeiouy]/.test(rest) && !/^(ing|ed|es|er|est|ly|ness|ment|ful|less)$/.test(rest)) {
+        return countSyllables(prefix) + countSyllables(rest);
+      }
+    }
+  }
+
+  // Check suffix matches
+  for (const suffix of COMPOUND_SUFFIXES) {
+    if (word.endsWith(suffix) && word.length >= suffix.length + 3) {
+      const first = word.slice(0, -suffix.length);
+      if (/[aeiouy]/.test(first)) {
+        return countSyllables(first) + countSyllables(suffix);
+      }
+    }
+  }
+
+  return null;
+}
 
 /**
  * Counts syllables in an English word using phonetic decomposition.
@@ -101,9 +165,25 @@ export function countSyllables(rawWord: string): number {
     return result;
   }
 
+  // Decompose closed compound words before applying single-root heuristics
+  const compoundCount = decomposeCompound(word);
+  if (compoundCount !== null) {
+    setCache(word, compoundCount);
+    return compoundCount;
+  }
+
   let count = 0;
   // Replace 'qu' with 'qw' so 'u' is not counted as a vowel or hiatus
   let w = word.replace(/qu/g, 'qw');
+
+  // Handle comprehensive irregular suffixes with internal silent 'e':
+  // -ely, -ment, -ness, -ful, -less, -like, -wide, -time, -side, -ized
+  w = w.replace(/([^aeiouy])e(ly|ment|ness|ful|less|like|wide|time|side)$/, '$1$2');
+
+  // Handle silent 'e' before -ized
+  if (/([^aeiouy])e(ized)$/.test(w)) {
+    w = w.replace(/([^aeiouy])e(ized)$/, '$1$2');
+  }
 
   // Handle common silent terminal 'e'
   // But preserve '-le' if preceded by consonant (e.g. table, bottle, cycle)
@@ -114,8 +194,8 @@ export function countSyllables(rawWord: string): number {
     w = w.slice(0, -1);
   }
 
-  // Handle common '-ed' suffix: silent unless preceded by 'd' or 't'
-  // e.g., 'jumped' -> 'jump', 'wanted' -> 2 syllables
+  // Handle common '-ed' / '-ized' suffix: silent unless preceded by 'd' or 't'
+  // e.g., 'jumped' -> 'jump', 'customized' -> 'customiz', 'wanted' -> 2 syllables
   if (w.endsWith('ed') && w.length > 3) {
     const rootChar = w[w.length - 3];
     if (rootChar !== 't' && rootChar !== 'd') {

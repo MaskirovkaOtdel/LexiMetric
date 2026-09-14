@@ -33,6 +33,49 @@ describe('Syllable Counter', () => {
     expect(countSyllables('wednesday')).toBe(2);
     expect(countSyllables('rhythm')).toBe(2);
     expect(countSyllables('queue')).toBe(1);
+    expect(countSyllables('element')).toBe(3);
+  });
+
+  it('handles irregular suffixes without internal silent e overcounting', () => {
+    // -ely
+    expect(countSyllables('safely')).toBe(2);
+    expect(countSyllables('nicely')).toBe(2);
+    // -ment
+    expect(countSyllables('management')).toBe(3);
+    expect(countSyllables('movement')).toBe(2);
+    expect(countSyllables('statement')).toBe(2);
+    // -ness
+    expect(countSyllables('likeness')).toBe(2);
+    expect(countSyllables('closeness')).toBe(2);
+    // -ful
+    expect(countSyllables('peaceful')).toBe(2);
+    expect(countSyllables('careful')).toBe(2);
+    expect(countSyllables('hopeful')).toBe(2);
+    // -less
+    expect(countSyllables('timeless')).toBe(2);
+    expect(countSyllables('hopeless')).toBe(2);
+    // -like
+    expect(countSyllables('lifelike')).toBe(2);
+    // -wide
+    expect(countSyllables('statewide')).toBe(2);
+    // -time
+    expect(countSyllables('peacetime')).toBe(2);
+    // -side
+    expect(countSyllables('roadside')).toBe(2);
+    expect(countSyllables('lakeside')).toBe(2);
+    // -ized
+    expect(countSyllables('customized')).toBe(3);
+  });
+
+  it('handles closed compound word decomposition accurately', () => {
+    expect(countSyllables('firefly')).toBe(2);
+    expect(countSyllables('barefoot')).toBe(2);
+    expect(countSyllables('somewhere')).toBe(2);
+    expect(countSyllables('grapefruit')).toBe(2);
+    expect(countSyllables('whiteboard')).toBe(2);
+    expect(countSyllables('timepiece')).toBe(2);
+    expect(countSyllables('wastebasket')).toBe(3);
+    expect(countSyllables('safeguard')).toBe(2);
   });
 
   it('handles empty and edge-case tokens', () => {

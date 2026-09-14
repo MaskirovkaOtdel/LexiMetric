@@ -57,6 +57,13 @@ export const App: React.FC = () => {
     setTimeout(() => setCopySuccess(false), 2000);
   };
 
+  const handleApplyFix = (span: { startIndex: number; endIndex: number; fixReplacement?: string }) => {
+    if (!span.fixReplacement) return;
+    const before = text.substring(0, span.startIndex);
+    const after = text.substring(span.endIndex);
+    setText(before + span.fixReplacement + after);
+  };
+
   const handleDownloadMarkdownReport = () => {
     const r = profile.readability;
     const t = profile.readTime;
@@ -449,6 +456,15 @@ ${profile.spans.map((s, i) => `${i + 1}. **[${s.type.toUpperCase()}]** "${s.text
                         <p className="text-slate-400 text-[11px]">{span.suggestion}</p>
                       )}
                     </div>
+                    {span.fixReplacement && (
+                      <button
+                        onClick={() => handleApplyFix(span)}
+                        className="px-2 py-1 rounded bg-indigo-600/30 hover:bg-indigo-600 text-indigo-200 hover:text-white border border-indigo-500/40 text-[10px] font-semibold transition-all shrink-0 cursor-pointer"
+                        title={`Replace with "${span.fixReplacement}"`}
+                      >
+                        Replace → "{span.fixReplacement}"
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -558,6 +574,14 @@ ${profile.spans.map((s, i) => `${i + 1}. **[${s.type.toUpperCase()}]** "${s.text
               <div className="p-2.5 rounded-lg bg-slate-950/50 border border-slate-800/60 flex items-center justify-between">
                 <span className="text-slate-400">SMOG Index</span>
                 <span className="font-semibold text-slate-200">{profile.readability.smogIndex}</span>
+              </div>
+              <div className="p-2.5 rounded-lg bg-slate-950/50 border border-slate-800/60 flex items-center justify-between">
+                <span className="text-slate-400">Dale-Chall</span>
+                <span className="font-semibold text-slate-200">{profile.readability.daleChallIndex}</span>
+              </div>
+              <div className="p-2.5 rounded-lg bg-slate-950/50 border border-slate-800/60 flex items-center justify-between">
+                <span className="text-slate-400">Linsear Write</span>
+                <span className="font-semibold text-slate-200">{profile.readability.linsearWrite}</span>
               </div>
               <div className="col-span-2 p-2.5 rounded-lg bg-slate-950/50 border border-slate-800/60 flex items-center justify-between">
                 <span className="text-slate-400">Automated Readability Index (ARI)</span>

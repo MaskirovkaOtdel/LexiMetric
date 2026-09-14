@@ -5,11 +5,18 @@ export interface ReadabilityScores {
   colemanLiauIndex: number;
   smogIndex: number;
   automatedReadabilityIndex: number;
+  daleChallIndex: number;
+  linsearWrite: number;
   consensusGrade: number;
+  consensusConfidence: 'high' | 'moderate' | 'low';
+  gradeRange: { min: number; max: number };
+  readingLevel: string;
   difficultyLabel: string;
   targetAudience: string;
   gradeBand: string;
 }
+
+export type ReadabilityMetrics = ReadabilityScores;
 
 export interface ReadabilityInput {
   wordCount: number;
@@ -17,19 +24,53 @@ export interface ReadabilityInput {
   syllableCount: number;
   polysyllableCount: number; // Words with >= 3 syllables
   characterCountWithoutSpaces: number;
+  difficultWordsCount?: number; // Dale-Chall unfamiliar words
 }
 
 /**
  * Calculates comprehensive readability indexes from token metrics.
  */
-export function calculateReadability(input: ReadabilityInput): ReadabilityScores {
-  const {
-    wordCount,
-    sentenceCount,
-    syllableCount,
-    polysyllableCount,
-    characterCountWithoutSpaces
-  } = input;
+export function calculateReadability(input: ReadabilityInput): ReadabilityScores;
+export function calculateReadability(
+  words: number,
+  sentences: number,
+  syllables: number,
+  complexWords: number,
+  polysyllableCount: number,
+  letters: number,
+  difficultWordsCount?: number
+): ReadabilityScores;
+export function calculateReadability(
+  inputOrWords: ReadabilityInput | number,
+  sentencesArg?: number,
+  syllablesArg?: number,
+  complexWordsArg?: number,
+  polysyllableCountArg?: number,
+  lettersArg?: number,
+  difficultWordsCountArg?: number
+): ReadabilityScores {
+  let wordCount: number;
+  let sentenceCount: number;
+  let syllableCount: number;
+  let polysyllableCount: number;
+  let characterCountWithoutSpaces: number;
+  let difficultWordsCount: number | undefined;
+
+  if (typeof inputOrWords === 'number') {
+    wordCount = inputOrWords;
+    sentenceCount = sentencesArg ?? 0;
+    syllableCount = syllablesArg ?? 0;
+    polysyllableCount = polysyllableCountArg ?? complexWordsArg ?? 0;
+    characterCountWithoutSpaces = lettersArg ?? 0;
+    difficultWordsCount = difficultWordsCountArg;
+  } else {
+    wordCount = inputOrWords.wordCount;
+    sentenceCount = inputOrWords.sentenceCount;
+    syllableCount = inputOrWords.syllableCount;
+    polysyllableCount = inputOrWords.polysyllableCount;
+    characterCountWithoutSpaces = inputOrWords.characterCountWithoutSpaces;
+    difficultWordsCount = inputOrWords.difficultWordsCount;
+  }
 
   if (wordCount === 0 || sentenceCount === 0) {
     return {
@@ -39,7 +80,12 @@ export function calculateReadability(input: ReadabilityInput): ReadabilityScores
       colemanLiauIndex: 0,
       smogIndex: 0,
       automatedReadabilityIndex: 0,
+      daleChallIndex: 0,
+      linsearWrite: 0,
       consensusGrade: 0,
+      consensusConfidence: 'low',
+      gradeRange: { min: 0, max: 0 },
+      readingLevel: 'No content',
       difficultyLabel: 'No content',
       targetAudience: 'N/A',
       gradeBand: 'N/A'
@@ -74,7 +120,6 @@ export function calculateReadability(input: ReadabilityInput): ReadabilityScores
 
   // 4. Coleman-Liau Index
   // 0.0588 * L - 0.296 * S - 15.8
-  // L = average letters per 100 words, S = average sentences per 100 words
   const L = (letters / words) * 100;
   const S = (sentences / words) * 100;
   const rawColeman = (0.0588 * L) - (0.296 * S) - 15.8;
@@ -91,18 +136,67 @@ export function calculateReadability(input: ReadabilityInput): ReadabilityScores
   const rawAri = 4.71 * (letters / words) + 0.5 * asl - 21.43;
   const automatedReadabilityIndex = round(Math.max(0, rawAri));
 
-  // Consensus Grade (Median or average of active grade levels)
+  // 7. Authentic Dale-Chall Readability Formula (Grade adjusted)
+  const difficultWords = difficultWordsCount !== undefined ? difficultWordsCount : polysyllableCount;
+  const difficultWordsPercent = (difficultWords / words) * 100;
+  let rawDaleChall = 0.1579 * difficultWordsPercent + 0.0496 * asl;
+  if (difficultWordsPercent > 5) {
+    rawDaleChall += 3.6365;
+  }
+  const daleChallIndex = round(Math.max(0, rawDaleChall));
+
+  // 8. Linsear Write Formula
+  const rawLinsear = (asl + 3 * (polysyllableCount / sentences)) / 2;
+  const linsearWrite = round(Math.max(0, rawLinsear));
+
+  // Consensus Grade (Including Dale-Chall with trimmed mean & agreement confidence)
   const validGrades = [
     fleschKincaidGrade,
     gunningFog,
     colemanLiauIndex,
     smogIndex,
-    automatedReadabilityIndex
+    automatedReadabilityIndex,
+    linsearWrite,
+    daleChallIndex
   ].filter(g => g > 0);
 
-  const consensusGrade = validGrades.length > 0
-    ? round(validGrades.reduce((a, b) => a + b, 0) / validGrades.length)
-    : 0;
+  let consensusGrade = 0;
+  let consensusConfidence: 'high' | 'moderate' | 'low' = 'low';
+  let gradeRange = { min: 0, max: 0 };
+
+  if (validGrades.length > 0) {
+    const sorted = [...validGrades].sort((a, b) => a - b);
+    const min = round(sorted[0]);
+    const max = round(sorted[sorted.length - 1]);
+    gradeRange = { min, max };
+
+    // Consensus Grade (trimmed mean when >= 5 scores to remove single-metric distortion)
+    if (sorted.length >= 5) {
+      const trimmed = sorted.slice(1, -1);
+      consensusGrade = round(trimmed.reduce((a, b) => a + b, 0) / trimmed.length);
+    } else {
+      consensusGrade = round(sorted.reduce((a, b) => a + b, 0) / sorted.length);
+    }
+
+    const spread = max - min;
+    if (validGrades.length >= 4) {
+      if (spread <= 3.5) {
+        consensusConfidence = 'high';
+      } else if (spread <= 6.5) {
+        consensusConfidence = 'moderate';
+      } else {
+        consensusConfidence = 'low';
+      }
+    } else if (validGrades.length >= 2) {
+      if (spread <= 3.0) {
+        consensusConfidence = 'moderate';
+      } else {
+        consensusConfidence = 'low';
+      }
+    } else {
+      consensusConfidence = 'low';
+    }
+  }
 
   const { difficultyLabel, targetAudience, gradeBand } = interpretScores(fleschReadingEase, consensusGrade);
 
@@ -113,7 +207,12 @@ export function calculateReadability(input: ReadabilityInput): ReadabilityScores
     colemanLiauIndex,
     smogIndex,
     automatedReadabilityIndex,
+    daleChallIndex,
+    linsearWrite,
     consensusGrade,
+    consensusConfidence,
+    gradeRange,
+    readingLevel: difficultyLabel,
     difficultyLabel,
     targetAudience,
     gradeBand
