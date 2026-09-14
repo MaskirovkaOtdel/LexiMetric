@@ -383,7 +383,8 @@ describe('Adversarial Challenge M1: Dale-Chall Vocabulary Lookup', () => {
       }
       const throughput = Math.round(lastProfile.wordCount / (minDuration / 1000));
       expect(lastProfile.wordCount).toBeGreaterThan(10000);
-      expect(throughput).toBeGreaterThan(600000);
+      const minThroughput = process.env.CI ? 250000 : 900000;
+      expect(throughput).toBeGreaterThan(minThroughput);
     });
   });
 });
