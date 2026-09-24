@@ -15,9 +15,13 @@ import {
   Sliders,
   Download,
   Eye,
-  Edit3
+  Edit3,
+  Globe,
+  Code,
+  Printer
 } from 'lucide-react';
 import { profileText, LinguisticProfile } from '../core/linguistics.js';
+import { generateEmbedSnippet } from '../embed/badge.js';
 
 const SAMPLE_TEXTS = {
   journalism: `The global transition toward renewable energy accelerated significantly this quarter as investments in solar photovoltaic infrastructure surpassed fossil fuel expenditures for the first time in modern history. 
@@ -32,7 +36,15 @@ The subsequent statistical analysis revealed statistically significant variance 
 
   conversational: `Building a newsletter audience in 2026 is less about algorithmic tricks and more about genuine voice. Readers are tired of generic summaries and automated listicles. They want honest stories, raw opinions, and practical takeaways they can put to work immediately.
 
-If you write with clarity and respect your reader's time, people will stick around. Keep your sentences crisp, trim every extra word, and treat your inbox like a direct conversation with a friend.`
+If you write with clarity and respect your reader's time, people will stick around. Keep your sentences crisp, trim every extra word, and treat your inbox like a direct conversation with a friend.`,
+
+  spanish: `La transición global hacia las energías renovables se aceleró significativamente este año. Los ministros de energía se reunieron para consolidar acuerdos vinculantes sobre la descarbonización de la economía industrial.
+
+Los informes preliminares demuestran que las tecnologías sostenibles han mejorado la resiliencia climática y fomentado el crecimiento económico regional con gran éxito.`,
+
+  german: `Die nachhaltige Umgestaltung der europäischen Energielandschaft schreitet mit bemerkenswerter Dynamik voran. Ingenieure und Wissenschaftler entwickeln innovative Speichertechnologien für erneuerbare Energien.
+
+Experten betonen, dass eine zügige Modernisierung der Infrastruktur entscheidend für die langfristige Stabilität der Stromnetze ist.`
 };
 
 export const App: React.FC = () => {
@@ -40,6 +52,8 @@ export const App: React.FC = () => {
   const [viewMode, setViewMode] = useState<'editor' | 'annotated'>('editor');
   const [activeFilter, setActiveFilter] = useState<'all' | 'passive' | 'run-on' | 'complex-word' | 'wordiness'>('all');
   const [copySuccess, setCopySuccess] = useState<boolean>(false);
+  const [showBadgeModal, setShowBadgeModal] = useState<boolean>(false);
+  const [badgeTheme, setBadgeTheme] = useState<'dark' | 'light' | 'editorial' | 'minimal'>('dark');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const profile: LinguisticProfile = useMemo(() => {
@@ -255,6 +269,18 @@ ${profile.spans.map((s, i) => `${i + 1}. **[${s.type.toUpperCase()}]** "${s.text
               >
                 Blog
               </button>
+              <button
+                onClick={() => setText(SAMPLE_TEXTS.spanish)}
+                className="px-2.5 py-1 rounded hover:bg-slate-700 text-slate-300 transition-colors"
+              >
+                Español
+              </button>
+              <button
+                onClick={() => setText(SAMPLE_TEXTS.german)}
+                className="px-2.5 py-1 rounded hover:bg-slate-700 text-slate-300 transition-colors"
+              >
+                Deutsch
+              </button>
             </div>
 
             <input
@@ -274,12 +300,30 @@ ${profile.spans.map((s, i) => `${i + 1}. **[${s.type.toUpperCase()}]** "${s.text
             </button>
 
             <button
+              onClick={() => setShowBadgeModal(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-amber-200 bg-amber-900/30 hover:bg-amber-900/50 rounded-lg border border-amber-700/50 transition-all"
+              title="Get Embeddable Article Badge"
+            >
+              <Code className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden sm:inline">Badge</span>
+            </button>
+
+            <button
               onClick={handleDownloadMarkdownReport}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-200 bg-indigo-900/40 hover:bg-indigo-900/60 rounded-lg border border-indigo-700/50 transition-all"
               title="Download Markdown Editorial Report"
             >
               <Download className="w-3.5 h-3.5 text-indigo-400" />
               <span className="hidden sm:inline">Report (.md)</span>
+            </button>
+
+            <button
+              onClick={() => window.print()}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-300 bg-slate-800 hover:bg-slate-700 rounded-lg border border-slate-700/80 transition-all"
+              title="Print Editorial Scorecard"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Print</span>
             </button>
 
             <button
@@ -588,6 +632,30 @@ ${profile.spans.map((s, i) => `${i + 1}. **[${s.type.toUpperCase()}]** "${s.text
                 <span className="font-semibold text-slate-200">{profile.readability.automatedReadabilityIndex}</span>
               </div>
             </div>
+
+            {/* Multilingual Extension Card */}
+            {profile.multilingualReadability && profile.detectedLanguage && profile.detectedLanguage.language !== 'en' && (
+              <div className="mt-3 p-3 rounded-xl bg-indigo-950/40 border border-indigo-700/50">
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-indigo-300">
+                    <Globe className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>{profile.detectedLanguage.languageName} Readability ({profile.multilingualReadability.secondaryLabel || 'Index'})</span>
+                  </div>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-900/60 text-indigo-300 border border-indigo-700/60 font-mono">
+                    {profile.detectedLanguage.language.toUpperCase()} • {Math.round(profile.detectedLanguage.confidence * 100)}%
+                  </span>
+                </div>
+                <div className="flex items-baseline justify-between">
+                  <div className="text-lg font-bold text-white tracking-tight">
+                    {profile.multilingualReadability.score}
+                    <span className="text-xs font-normal text-slate-400 ml-1.5">({profile.multilingualReadability.interpretation})</span>
+                  </div>
+                  <div className="text-xs font-semibold text-indigo-300 bg-indigo-900/40 px-2 py-0.5 rounded">
+                    Grade ~{profile.multilingualReadability.gradeEquivalent}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* 3. Syntactic & Lexical Metrics */}
@@ -650,6 +718,88 @@ ${profile.spans.map((s, i) => `${i + 1}. **[${s.type.toUpperCase()}]** "${s.text
       <footer className="border-t border-slate-800/80 py-4 text-center text-xs text-slate-500">
         LexiMetric Community Edition • Client-Side Algorithmic Profiler • AntiGravity Media-Tech
       </footer>
+
+      {/* Embed Badge Modal */}
+      {showBadgeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative">
+            <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-800">
+              <div className="flex items-center gap-2">
+                <Code className="w-5 h-5 text-amber-400" />
+                <h3 className="text-base font-bold text-white">Embed Article Badge</h3>
+              </div>
+              <button
+                onClick={() => setShowBadgeModal(false)}
+                className="text-slate-400 hover:text-white text-sm font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-400 mb-4">
+              Embed a live, zero-dependency editorial badge directly on your publication's article header.
+            </p>
+
+            {/* Theme Selector */}
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-xs text-slate-400 font-medium">Theme:</span>
+              {(['dark', 'light', 'editorial', 'minimal'] as const).map(t => (
+                <button
+                  key={t}
+                  onClick={() => setBadgeTheme(t)}
+                  className={`px-2.5 py-1 text-xs rounded-lg capitalize transition-all ${
+                    badgeTheme === t ? 'bg-amber-600 text-white font-semibold' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                  }`}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+
+            {/* Live Preview */}
+            <div className="mb-4 p-4 rounded-xl bg-slate-950 border border-slate-800 text-center">
+              <div className="text-[10px] text-slate-500 mb-2 font-mono uppercase tracking-wider">Live Preview</div>
+              <div
+                className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium ${
+                  badgeTheme === 'light' ? 'bg-slate-100 text-slate-800 border border-slate-300' :
+                  badgeTheme === 'editorial' ? 'bg-amber-50 text-amber-900 border border-amber-200' :
+                  badgeTheme === 'minimal' ? 'text-slate-400' :
+                  'bg-slate-900 text-slate-100 border border-slate-800'
+                }`}
+              >
+                <span>⏱️</span>
+                <span className="font-semibold">{profile.readTime.silentReadingFormatted}</span>
+                <span>•</span>
+                <span className="bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded text-[11px] font-semibold">
+                  Grade {profile.readability.consensusGrade}
+                </span>
+                <span>•</span>
+                <span className="opacity-75">{profile.wordCount} words</span>
+              </div>
+            </div>
+
+            {/* Snippet Output */}
+            <div className="relative mb-4">
+              <pre className="p-3 bg-slate-950 border border-slate-800 rounded-xl text-xs text-amber-300 font-mono overflow-x-auto">
+                {generateEmbedSnippet({ theme: badgeTheme, showGrade: true })}
+              </pre>
+            </div>
+
+            <div className="flex items-center justify-end gap-2">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(generateEmbedSnippet({ theme: badgeTheme, showGrade: true }));
+                  alert('Embed code copied to clipboard!');
+                }}
+                className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold rounded-lg shadow-md transition-all flex items-center gap-1.5"
+              >
+                <Copy className="w-3.5 h-3.5" />
+                Copy Embed Code
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

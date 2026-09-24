@@ -2,6 +2,12 @@ import { countSyllables } from './syllables.js';
 import { calculateReadability, ReadabilityScores } from './readability.js';
 import { calculateReadTime, ReadTimeEstimate } from './readTime.js';
 import { isDaleChallFamiliar } from './daleChallWords.js';
+import {
+  detectLanguage,
+  calculateMultilingualReadability,
+  LanguageDetectionResult,
+  MultilingualReadabilityResult
+} from './multilingual.js';
 
 export interface TextSpan {
   text: string;
@@ -57,6 +63,10 @@ export interface LinguisticProfile {
   // Scores & Times
   readability: ReadabilityScores;
   readTime: ReadTimeEstimate;
+
+  // Multilingual Profile
+  detectedLanguage?: LanguageDetectionResult;
+  multilingualReadability?: MultilingualReadabilityResult;
 }
 
 // Auxiliary verbs used in English passive voice
@@ -596,6 +606,15 @@ export function profileText(text: string): LinguisticProfile {
     readability.fleschReadingEase
   );
 
+  const detectedLanguage = detectLanguage(text);
+  const multilingualReadability = calculateMultilingualReadability(detectedLanguage.language, {
+    wordCount: totalWords,
+    sentenceCount: effectiveSentences,
+    syllableCount: totalSyllables,
+    characterCountWithoutSpaces,
+    polysyllableCount
+  });
+
   return {
     wordCount: totalWords,
     characterCountWithSpaces,
@@ -618,7 +637,9 @@ export function profileText(text: string): LinguisticProfile {
     spans: spans.sort((a, b) => a.startIndex - b.startIndex),
     complexWords,
     readability,
-    readTime
+    readTime,
+    detectedLanguage,
+    multilingualReadability
   };
 }
 
