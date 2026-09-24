@@ -5,3 +5,4 @@ export * from './readTime.js';
 export * from './linguistics.js';
 export * from './worker.js';
 export * from './multilingual.js';
+export * from './markdown.js';

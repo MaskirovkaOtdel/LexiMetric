@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>LexiMetric Extension</title>
+  <style>
+    body {
+      width: 320px;
+      margin: 0;
+      padding: 16px;
+      background: #0f172a;
+      color: #f8fafc;
+      font-family: system-ui, -apple-system, sans-serif;
+      box-sizing: border-box;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #1e293b;
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+    }
+    .title {
+      font-weight: 700;
+      font-size: 14px;
+      color: #38bdf8;
+    }
+    .version {
+      font-size: 10px;
+      color: #64748b;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .card {
+      background: #1e293b;
+      padding: 10px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .card-val {
+      font-size: 18px;
+      font-weight: bold;
+      color: #38bdf8;
+    }
+    .card-label {
+      font-size: 10px;
+      color: #94a3b8;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+    .btn {
+      width: 100%;
+      background: #0284c7;
+      color: white;
+      border: none;
+      padding: 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .btn:hover {
+      background: #0369a1;
+    }
+    #status {
+      font-size: 11px;
+      color: #94a3b8;
+      text-align: center;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <span class="title">⚡ LexiMetric Profiler</span>
+    <span class="version">v1.2.0</span>
+  </div>
+  <div class="grid">
+    <div class="card">
+      <div id="readTime" class="card-val">--</div>
+      <div class="card-label">Read Time</div>
+    </div>
+    <div class="card">
+      <div id="fleschScore" class="card-val">--</div>
+      <div class="card-label">Reading Ease</div>
+    </div>
+    <div class="card">
+      <div id="wordCount" class="card-val">--</div>
+      <div class="card-label">Word Count</div>
+    </div>
+    <div class="card">
+      <div id="gradeLevel" class="card-val">--</div>
+      <div class="card-label">Consensus Grade</div>
+    </div>
+  </div>
+  <button id="inspectBtn" class="btn">Inspect Active Page Text</button>
+  <div id="status">Click to inspect selected text or entire article</div>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

@@ -32,6 +32,22 @@ describe('Multilingual Readability & Language Identification Engine', () => {
       const res = detectLanguage(text);
       expect(res.language).toBe('fr');
       expect(res.languageName).toBe('French');
+      expect(res.confidence).toBeGreaterThan(0.4);
+    });
+
+    it('accurately identifies Italian editorial text', () => {
+      const text = 'La transizione ecologica e lo sviluppo sostenibile sono temi fondamentali per il futuro della nostra economia e delle generazioni future in Italia.';
+      const res = detectLanguage(text);
+      expect(res.language).toBe('it');
+      expect(res.languageName).toBe('Italian');
+      expect(res.confidence).toBeGreaterThan(0.5);
+    });
+
+    it('accurately identifies Portuguese text', () => {
+      const text = 'O desenvolvimento sustentável e a preservação dos recursos naturais são essenciais para o futuro das próximas gerações em todo o mundo.';
+      const res = detectLanguage(text);
+      expect(res.language).toBe('pt');
+      expect(res.languageName).toBe('Portuguese');
       expect(res.confidence).toBeGreaterThan(0.5);
     });
 
@@ -118,10 +134,42 @@ describe('Multilingual Readability & Language Identification Engine', () => {
       expect(res.score).toBeLessThanOrEqual(100);
       expect(res.secondaryLabel).toBe('Flesch-Kandel');
     });
+
+    it('calculates Italian Indice Gulpease', () => {
+      const res = calculateMultilingualReadability('it', {
+        wordCount: 100,
+        sentenceCount: 5,
+        syllableCount: 200,
+        characterCountWithoutSpaces: 480,
+        polysyllableCount: 20
+      });
+
+      expect(res.language).toBe('it');
+      expect(res.secondaryLabel).toBe('Indice Gulpease');
+      expect(res.score).toBeGreaterThan(0);
+      expect(res.score).toBeLessThanOrEqual(100);
+      expect(res.gradeEquivalent).toBeDefined();
+    });
+
+    it('calculates Portuguese Flesch-Fernández PT', () => {
+      const res = calculateMultilingualReadability('pt', {
+        wordCount: 120,
+        sentenceCount: 6,
+        syllableCount: 220,
+        characterCountWithoutSpaces: 550,
+        polysyllableCount: 22
+      });
+
+      expect(res.language).toBe('pt');
+      expect(res.secondaryLabel).toBe('Flesch-Fernández PT');
+      expect(res.score).toBeGreaterThan(0);
+      expect(res.score).toBeLessThanOrEqual(100);
+      expect(res.gradeEquivalent).toBeDefined();
+    });
   });
 
   describe('Integration with profileText()', () => {
-    it('automatically attaches multilingual metadata when profiling foreign text', () => {
+    it('automatically attaches multilingual metadata when profiling Spanish text', () => {
       const spanishArticle = 'La inteligencia artificial está transformando la redacción periodística en todo el mundo. Los editores utilizan algoritmos para analizar la legibilidad de las noticias con gran precisión.';
       const profile = profileText(spanishArticle);
 
@@ -130,6 +178,24 @@ describe('Multilingual Readability & Language Identification Engine', () => {
       expect(profile.multilingualReadability).toBeDefined();
       expect(profile.multilingualReadability?.language).toBe('es');
       expect(profile.multilingualReadability?.score).toBeGreaterThan(0);
+    });
+
+    it('automatically attaches multilingual metadata when profiling Italian text', () => {
+      const italianArticle = 'La transizione ecologica rappresenta un obiettivo cruciale per lo sviluppo dell\'industria moderna. Molti ricercatori studiano soluzioni sostenibili per ridurre le emissioni.';
+      const profile = profileText(italianArticle);
+
+      expect(profile.detectedLanguage?.language).toBe('it');
+      expect(profile.multilingualReadability?.language).toBe('it');
+      expect(profile.multilingualReadability?.secondaryLabel).toBe('Indice Gulpease');
+    });
+
+    it('automatically attaches multilingual metadata when profiling Portuguese text', () => {
+      const ptArticle = 'O desenvolvimento tecnológico proporciona grandes oportunidades para a educação e para o avanço da ciência em Portugal e no Brasil.';
+      const profile = profileText(ptArticle);
+
+      expect(profile.detectedLanguage?.language).toBe('pt');
+      expect(profile.multilingualReadability?.language).toBe('pt');
+      expect(profile.multilingualReadability?.secondaryLabel).toBe('Flesch-Fernández PT');
     });
   });
 });

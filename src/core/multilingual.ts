@@ -3,7 +3,7 @@
  * Zero-dependency client-side international linguistic profiling
  */
 
-export type SupportedLanguage = 'en' | 'es' | 'de' | 'fr';
+export type SupportedLanguage = 'en' | 'es' | 'de' | 'fr' | 'it' | 'pt';
 
 export interface LanguageDetectionResult {
   language: SupportedLanguage;
@@ -38,7 +38,18 @@ const STOPWORDS: Record<SupportedLanguage, Set<string>> = {
   fr: new Set([
     'de', 'la', 'le', 'et', 'les', 'des', 'en', 'un', 'du', 'une', 'que', 'est', 'pour', 'qui',
     'dans', 'a', 'par', 'plus', 'pas', 'au', 'sur', 'ne', 'se', 'avec', 'ce', 'il', 'sont',
-    'sont', 'ont', 'ses', 'mais', 'ou', 'comme', 'nous', 'sa', 'leur', 'cette', 'aux', 'aussi'
+    'ont', 'ses', 'mais', 'ou', 'comme', 'nous', 'sa', 'leur', 'cette', 'aux', 'aussi',
+    'hier', 'demain', 'tout', 'tous', 'faire', 'tres', 'maman', 'mon', 'mes'
+  ]),
+  it: new Set([
+    'di', 'la', 'il', 'che', 'in', 'un', 'una', 'per', 'con', 'del', 'della', 'non', 'da',
+    'le', 'si', 'ed', 'ha', 'delle', 'dei', 'ma', 'sono', 'al', 'nel', 'come', 'anche',
+    'era', 'questo', 'questa', 'piu', 'su', 'loro', 'se', 'ci', 'ad', 'dopo', 'gli', 'suo', 'sua'
+  ]),
+  pt: new Set([
+    'de', 'que', 'do', 'da', 'em', 'um', 'para', 'com', 'nao', 'uma', 'os', 'no', 'se',
+    'na', 'por', 'mais', 'as', 'dos', 'como', 'mas', 'foi', 'ao', 'ele', 'das', 'tem',
+    'seu', 'sua', 'ou', 'ser', 'quando', 'muito', 'ha', 'nos', 'estao', 'eu', 'tambem'
   ]),
   en: new Set([
     'the', 'be', 'to', 'of', 'and', 'a', 'in', 'that', 'have', 'i', 'it', 'for', 'not', 'on',
@@ -51,7 +62,9 @@ const LANGUAGE_NAMES: Record<SupportedLanguage, string> = {
   en: 'English',
   es: 'Spanish',
   de: 'German',
-  fr: 'French'
+  fr: 'French',
+  it: 'Italian',
+  pt: 'Portuguese'
 };
 
 /**
@@ -60,15 +73,15 @@ const LANGUAGE_NAMES: Record<SupportedLanguage, string> = {
 export function detectLanguage(text: string): LanguageDetectionResult {
   // Sample up to first 2,500 characters for instantaneous detection without large allocations
   const sample = text.length > 2500 ? text.slice(0, 2500) : text;
-  const words = sample.toLowerCase().match(/\b[a-záéíóúüñäößàâçèêëîïôûù]{2,}\b/g) || [];
+  const words = sample.toLowerCase().match(/\b[a-záéíóúüñäößàâçèêëîïôûùãõâêôçèéìòù]{2,}\b/gu) || [];
   if (words.length === 0) {
     return { language: 'en', confidence: 1, languageName: 'English' };
   }
 
-  const scores: Record<SupportedLanguage, number> = { en: 0, es: 0, de: 0, fr: 0 };
+  const scores: Record<SupportedLanguage, number> = { en: 0, es: 0, de: 0, fr: 0, it: 0, pt: 0 };
 
   for (const word of words) {
-    for (const lang of (['es', 'de', 'fr', 'en'] as SupportedLanguage[])) {
+    for (const lang of (['es', 'de', 'fr', 'it', 'pt', 'en'] as SupportedLanguage[])) {
       if (STOPWORDS[lang].has(word)) {
         scores[lang]++;
       }
@@ -76,13 +89,15 @@ export function detectLanguage(text: string): LanguageDetectionResult {
     // High-precision diacritic hints
     if (/[áíóúñ¿¡]/.test(word)) scores.es += 2;
     if (/[äöüß]/.test(word)) scores.de += 2;
-    if (/[àâçèêëîïôûùœæ]/.test(word)) scores.fr += 2;
+    if (/[œæ]/.test(word)) scores.fr += 2;
+    if (/[ãõçâêô]/.test(word)) scores.pt += 2;
+    if (/[àèéìòù]/.test(word)) { scores.it += 1; scores.fr += 1; }
   }
 
   let bestLang: SupportedLanguage = 'en';
   let maxScore = -1;
 
-  for (const lang of (['en', 'es', 'de', 'fr'] as SupportedLanguage[])) {
+  for (const lang of (['en', 'es', 'de', 'fr', 'it', 'pt'] as SupportedLanguage[])) {
     if (scores[lang] > maxScore) {
       maxScore = scores[lang];
       bestLang = lang;
@@ -172,6 +187,66 @@ export function countFrenchSyllables(word: string): number {
 
   const matches = stripped.match(/V+/g);
   return matches ? Math.max(1, matches.length) : 1;
+}
+
+/**
+ * Counts syllables for Italian words
+ */
+export function countItalianSyllables(word: string): number {
+  const clean = word.toLowerCase().replace(/[^a-zàèéìòù]/g, '');
+  if (!clean) return 0;
+  if (clean.length <= 2) return 1;
+
+  const vowels = clean.match(/[aàeèéiìoòóuù]+/g);
+  if (!vowels) return 1;
+
+  let syllables = 0;
+  for (const v of vowels) {
+    if (v.length === 1) {
+      syllables++;
+    } else {
+      const strongCount = (v.match(/[aàeèéoòó]/g) || []).length;
+      syllables += strongCount > 1 ? strongCount : 1;
+    }
+  }
+  return Math.max(1, syllables);
+}
+
+/**
+ * Counts syllables for Portuguese words
+ */
+export function countPortugueseSyllables(word: string): number {
+  const clean = word.toLowerCase().replace(/[^a-záéíóúãõâêôç]/g, '');
+  if (!clean) return 0;
+  if (clean.length <= 2) return 1;
+
+  const vowels = clean.match(/[aáãâeéêiíoóõôuú]+/g);
+  if (!vowels) return 1;
+
+  let syllables = 0;
+  for (const v of vowels) {
+    if (v.length === 1) {
+      syllables++;
+    } else {
+      const strongCount = (v.match(/[aáãâeéêoóõô]/g) || []).length;
+      syllables += strongCount > 1 ? strongCount : 1;
+    }
+  }
+  return Math.max(1, syllables);
+}
+
+/**
+ * Dispatches syllable counting for supported languages
+ */
+export function countMultilingualSyllables(word: string, lang: SupportedLanguage): number {
+  switch (lang) {
+    case 'es': return countSpanishSyllables(word);
+    case 'de': return countGermanSyllables(word);
+    case 'fr': return countFrenchSyllables(word);
+    case 'it': return countItalianSyllables(word);
+    case 'pt': return countPortugueseSyllables(word);
+    default: return countSpanishSyllables(word);
+  }
 }
 
 export interface MultilingualMetricsInput {
@@ -294,6 +369,53 @@ export function calculateMultilingualReadability(
         interpretation,
         secondaryScore: score,
         secondaryLabel: 'Flesch-Kandel',
+        gradeEquivalent: grade
+      };
+    }
+
+    case 'it': {
+      // Indice Gulpease: 89 - 10 * (Letters / Words) + 300 * (Sentences / Words)
+      const rawGulpease = 89 - (10 * lettersPerWord) + (300 * (1 / asl));
+      const score = Math.round(Math.max(0, Math.min(100, rawGulpease)) * 10) / 10;
+
+      let interpretation = 'Medio (Diploma superiore)';
+      let grade = 12;
+      if (score >= 80) { interpretation = 'Molto facile (Licenza elementare)'; grade = 5; }
+      else if (score >= 60) { interpretation = 'Facile (Licenza media)'; grade = 8; }
+      else if (score >= 40) { interpretation = 'Medio (Diploma superiore)'; grade = 12; }
+      else { interpretation = 'Difficile (Laurea / Specializzato)'; grade = 16; }
+
+      return {
+        language: 'it',
+        languageName: 'Italian',
+        score,
+        interpretation,
+        secondaryScore: score,
+        secondaryLabel: 'Indice Gulpease',
+        gradeEquivalent: grade
+      };
+    }
+
+    case 'pt': {
+      // Flesch-Fernández PT: 248.835 - 1.015 * ASL - 84.6 * ASW
+      const rawPt = 248.835 - (1.015 * asl) - (84.6 * asw);
+      const score = Math.round(Math.max(0, Math.min(100, rawPt)) * 10) / 10;
+
+      let interpretation = 'Médio / Padrão';
+      let grade = 11;
+      if (score >= 75) { interpretation = 'Muito fácil (Ensino Fundamental I)'; grade = 5; }
+      else if (score >= 60) { interpretation = 'Fácil (Ensino Fundamental II)'; grade = 8; }
+      else if (score >= 50) { interpretation = 'Médio / Padrão (Ensino Médio)'; grade = 11; }
+      else if (score >= 30) { interpretation = 'Difícil (Ensino Superior)'; grade = 14; }
+      else { interpretation = 'Muito difícil (Acadêmico / Pós-graduação)'; grade = 17; }
+
+      return {
+        language: 'pt',
+        languageName: 'Portuguese',
+        score,
+        interpretation,
+        secondaryScore: score,
+        secondaryLabel: 'Flesch-Fernández PT',
         gradeEquivalent: grade
       };
     }

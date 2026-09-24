@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { profileText, LinguisticProfile } from '../core/linguistics.js';
 import { generateEmbedSnippet } from '../embed/badge.js';
+import { analyzeMarkdownDocument } from '../core/markdown.js';
 
 const SAMPLE_TEXTS = {
   journalism: `The global transition toward renewable energy accelerated significantly this quarter as investments in solar photovoltaic infrastructure surpassed fossil fuel expenditures for the first time in modern history. 
@@ -44,7 +45,15 @@ Los informes preliminares demuestran que las tecnologías sostenibles han mejora
 
   german: `Die nachhaltige Umgestaltung der europäischen Energielandschaft schreitet mit bemerkenswerter Dynamik voran. Ingenieure und Wissenschaftler entwickeln innovative Speichertechnologien für erneuerbare Energien.
 
-Experten betonen, dass eine zügige Modernisierung der Infrastruktur entscheidend für die langfristige Stabilität der Stromnetze ist.`
+Experten betonen, dass eine zügige Modernisierung der Infrastruktur entscheidend für die langfristige Stabilität der Stromnetze ist.`,
+
+  italian: `La transizione ecologica e l'innovazione tecnologica rappresentano una svolta fondamentale per l'economia contemporanea. Ricercatori e istituzioni collaborano per promuovere modelli di sviluppo sostenibile in tutta la penisola italiana.
+
+Gli investimenti nelle fonti rinnovabili hanno registrato una crescita costante, consentendo una riduzione significativa delle emissioni inquinanti nei principali centri urbani.`,
+
+  portuguese: `O avanço da inteligência artificial e a transformação digital estão revolucionando o panorama editorial e científico. Especialistas e pesquisadores em Lisboa e São Paulo destacam a importância de diretrizes éticas claras para garantir a transparência dos algoritmos.
+
+Com a modernização contínua das plataformas de comunicação, as publicações digitais ampliam o acesso ao conhecimento com grande velocidade e eficiência.`
 };
 
 export const App: React.FC = () => {
@@ -58,6 +67,10 @@ export const App: React.FC = () => {
 
   const profile: LinguisticProfile = useMemo(() => {
     return profileText(text);
+  }, [text]);
+
+  const markdownDoc = useMemo(() => {
+    return analyzeMarkdownDocument(text);
   }, [text]);
 
   const filteredSpans = useMemo(() => {
@@ -280,6 +293,18 @@ ${profile.spans.map((s, i) => `${i + 1}. **[${s.type.toUpperCase()}]** "${s.text
                 className="px-2.5 py-1 rounded hover:bg-slate-700 text-slate-300 transition-colors"
               >
                 Deutsch
+              </button>
+              <button
+                onClick={() => setText(SAMPLE_TEXTS.italian)}
+                className="px-2.5 py-1 rounded hover:bg-slate-700 text-slate-300 transition-colors"
+              >
+                Italiano
+              </button>
+              <button
+                onClick={() => setText(SAMPLE_TEXTS.portuguese)}
+                className="px-2.5 py-1 rounded hover:bg-slate-700 text-slate-300 transition-colors"
+              >
+                Português
               </button>
             </div>
 
@@ -710,6 +735,40 @@ ${profile.spans.map((s, i) => `${i + 1}. **[${s.type.toUpperCase()}]** "${s.text
               </div>
             </div>
           </div>
+
+          {/* 4. Markdown Section Breakdown (when document contains multiple sections) */}
+          {markdownDoc.sections.length > 1 && (
+            <div className="bg-gradient-to-br from-slate-900 to-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl">
+              <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-800/80">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-emerald-400" />
+                  <span className="text-sm font-semibold text-slate-200">
+                    Markdown Section Breakdown ({markdownDoc.sections.length})
+                  </span>
+                </div>
+                <span className="text-[11px] text-slate-400 font-mono">Structured Readability</span>
+              </div>
+              <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                {markdownDoc.sections.map((sec, i) => (
+                  <div key={i} className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800/80 flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2 truncate max-w-xs">
+                      <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-mono text-[10px] font-bold">
+                        H{sec.level}
+                      </span>
+                      <span className="font-medium text-slate-200 truncate">{sec.heading}</span>
+                    </div>
+                    <div className="flex items-center gap-2.5 text-slate-400 shrink-0 text-[11px]">
+                      <span>{sec.wordCount}w</span>
+                      <span>•</span>
+                      <span className="font-semibold text-slate-200">Flesch {sec.readingEase}</span>
+                      <span>•</span>
+                      <span className="text-slate-400">{sec.readTimeFormatted}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
         </div>
       </main>

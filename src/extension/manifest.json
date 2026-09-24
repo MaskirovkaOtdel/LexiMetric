@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "LexiMetric - Instant Readability & Read-Time Profiler",
+  "version": "1.2.0",
+  "description": "Zero-dependency client-side linguistic and readability profiler for writers, journalists, and editors.",
+  "permissions": ["activeTab", "scripting"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "LexiMetric Profiler"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["contentScript.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
