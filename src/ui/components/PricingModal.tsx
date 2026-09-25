@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Check, X, Shield, Zap, Building, Users } from 'lucide-react';
 
 export interface PricingModalProps {
@@ -14,10 +14,14 @@ export const PricingModal: React.FC<PricingModalProps> = ({
 }) => {
   if (!isOpen) return null;
 
+  const [customerEmail, setCustomerEmail] = useState<string>('subscriber@example.com');
+
   const handleCheckout = async (tier: string) => {
     if (onSelectTier) {
       onSelectTier(tier);
     }
+
+    const email = customerEmail.trim() || 'subscriber@example.com';
 
     try {
       const res = await fetch('http://localhost:4000/api/v1/billing/checkout', {
@@ -25,7 +29,7 @@ export const PricingModal: React.FC<PricingModalProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tier,
-          email: 'subscriber@example.com',
+          email,
           provider: 'stripe'
         })
       });
@@ -42,7 +46,7 @@ export const PricingModal: React.FC<PricingModalProps> = ({
     }
 
     // Direct fallback modal feedback
-    alert(`Initiating secure checkout for LexiMetric Pro (${tier.toUpperCase()})... Redirecting to payment portal.`);
+    alert(`Initiating secure checkout for LexiMetric Pro (${tier.toUpperCase()}) for ${email}... Redirecting to payment portal.`);
   };
 
   return (
@@ -72,6 +76,23 @@ export const PricingModal: React.FC<PricingModalProps> = ({
           >
             <X className="w-5 h-5" />
           </button>
+        </div>
+
+        {/* Email delivery bar */}
+        <div className="mb-6 p-4 rounded-2xl bg-slate-950/70 border border-slate-800 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <label className="text-xs font-semibold text-slate-300 block mb-0.5">
+              License Delivery Email
+            </label>
+            <p className="text-[11px] text-slate-400">Your cryptographic license key and credentials will be sent to this address.</p>
+          </div>
+          <input
+            type="email"
+            value={customerEmail}
+            onChange={(e) => setCustomerEmail(e.target.value)}
+            placeholder="subscriber@example.com"
+            className="bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500/50 w-full sm:w-72 font-mono"
+          />
         </div>
 
         {/* 4-Column Tier Matrix */}
