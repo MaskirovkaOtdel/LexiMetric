@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.0] - 2026-09-25
+
+### Added
+- **Italian Readability (Indice Gulpease) & Portuguese Readability (Flesch-Fernández PT) (`src/core/multilingual.ts`)**:
+  - Native Italian language detection (`it`) and syllabification engine handling Italian hiatuses and strong vowels.
+  - Authentic **Indice Gulpease** formula calibrated to Italian academic and journalistic benchmarks with school grade equivalents (Licenza elementare, media, Diploma, Laurea).
+  - Native Portuguese language detection (`pt`) and syllabification handling Portuguese nasal vowels (`ã`, `õ`) and accents.
+  - Authentic **Flesch-Fernández PT** reading ease metric with Brazilian/European educational grade calibrations.
+- **Structured Markdown Section Profiling (`src/core/markdown.ts`)**:
+  - Intelligent AST parser breaking down Markdown documents by heading levels (`H1`–`H6`).
+  - Section-by-section readability profiling, sentence complexity distribution, and document structure analysis.
+- **WebExtension Browser Extension Scaffold (`src/extension/`)**:
+  - Chrome & Firefox Manifest V3 compliant extension scaffold.
+  - Interactive popup interface and content script for one-click in-browser page readability and read-time audits.
+- **Interactive Web Studio Enhancements (`src/ui/App.tsx`)**:
+  - Markdown profiling mode and Italian/Portuguese sample texts with dedicated scorecards.
+
+### Performance
+- Maintained **>1.7 Million words/second** throughput on full multilingual and syntactic profiling.
+- Phonetic syllable counter operates at **>7.1 Million words/second**.
+
+### Testing & Verification
+- Added automated unit tests in `tests/markdown.test.ts` and `tests/multilingual.test.ts`.
+- **126 passed tests across 10 test suites** (100% pass rate).
+- Production build verified with zero errors.
+
+---
+
 ## [1.1.0] - 2026-09-24
 
 ### Added

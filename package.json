@@ -1,6 +1,6 @@
 {
   "name": "leximetric",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Editorial Read-Time & Linguistic Profiler - Zero-dependency client-side and CLI readability suite",
   "type": "module",
   "main": "./dist-cli/core/index.js",
