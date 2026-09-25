@@ -23,6 +23,7 @@ import {
 import { profileText, LinguisticProfile } from '../core/linguistics.js';
 import { generateEmbedSnippet } from '../embed/badge.js';
 import { analyzeMarkdownDocument } from '../core/markdown.js';
+import { PricingModal } from './components/PricingModal.js';
 
 const SAMPLE_TEXTS = {
   journalism: `The global transition toward renewable energy accelerated significantly this quarter as investments in solar photovoltaic infrastructure surpassed fossil fuel expenditures for the first time in modern history. 
@@ -62,6 +63,7 @@ export const App: React.FC = () => {
   const [activeFilter, setActiveFilter] = useState<'all' | 'passive' | 'run-on' | 'complex-word' | 'wordiness'>('all');
   const [copySuccess, setCopySuccess] = useState<boolean>(false);
   const [showBadgeModal, setShowBadgeModal] = useState<boolean>(false);
+  const [showPricingModal, setShowPricingModal] = useState<boolean>(false);
   const [badgeTheme, setBadgeTheme] = useState<'dark' | 'light' | 'editorial' | 'minimal'>('dark');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -358,6 +360,16 @@ ${profile.spans.map((s, i) => `${i + 1}. **[${s.type.toUpperCase()}]** "${s.text
             >
               {copySuccess ? <CheckCircle className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
               <span className="hidden sm:inline">{copySuccess ? 'Copied' : 'JSON'}</span>
+            </button>
+
+            {/* Upgrade to Pro Button */}
+            <button
+              onClick={() => setShowPricingModal(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-gradient-to-r from-purple-600 via-indigo-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 rounded-lg shadow-md shadow-purple-500/20 transition-all cursor-pointer"
+              title="Upgrade to LexiMetric Pro"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+              <span>Upgrade to Pro</span>
             </button>
           </div>
         </div>
@@ -859,6 +871,12 @@ ${profile.spans.map((s, i) => `${i + 1}. **[${s.type.toUpperCase()}]** "${s.text
           </div>
         </div>
       )}
+
+      {/* Pricing Comparison Modal */}
+      <PricingModal
+        isOpen={showPricingModal}
+        onClose={() => setShowPricingModal(false)}
+      />
     </div>
   );
 };
