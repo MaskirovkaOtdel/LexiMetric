@@ -21,7 +21,12 @@ export const PricingModal: React.FC<PricingModalProps> = ({
       onSelectTier(tier);
     }
 
-    const email = customerEmail.trim() || 'subscriber@example.com';
+    const email = customerEmail.trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRegex.test(email)) {
+      alert('Please provide a valid email address for license delivery.');
+      return;
+    }
 
     try {
       const res = await fetch('http://localhost:4000/api/v1/billing/checkout', {

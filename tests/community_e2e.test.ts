@@ -326,6 +326,42 @@ describe('Community Edition End-to-End Test Suite (R1, R2, R3)', () => {
         internals.H = prevDispatcher;
       }
     });
+
+    it('R3.4: validates custom license delivery email input format and blocks invalid emails before network dispatch', async () => {
+      let alertMsg = '';
+      const originalAlert = globalThis.alert;
+      const originalFetch = globalThis.fetch;
+      const mockFetch = vi.fn();
+      globalThis.fetch = mockFetch;
+      globalThis.alert = vi.fn((msg) => { alertMsg = String(msg); });
+
+      const invalidEmail = 'not-a-valid-email';
+      const internals = (React as any).__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE;
+      const prevDispatcher = internals.H;
+      internals.H = {
+        useState: () => [invalidEmail, vi.fn()]
+      };
+
+      try {
+        const vnode = PricingModal({
+          isOpen: true,
+          onClose: () => {}
+        });
+
+        const matrix = vnode.props.children.props.children[2];
+        const creatorCard = matrix.props.children[1];
+        const creatorButton = creatorCard.props.children[1];
+
+        await creatorButton.props.onClick();
+
+        expect(alertMsg).toContain('Please provide a valid email address for license delivery.');
+        expect(mockFetch).not.toHaveBeenCalled();
+      } finally {
+        globalThis.alert = originalAlert;
+        globalThis.fetch = originalFetch;
+        internals.H = prevDispatcher;
+      }
+    });
   });
 });
 
